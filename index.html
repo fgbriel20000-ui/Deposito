@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6fa4">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Depósito Faria</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--tx:#13232d;--mu:#5b7282;--ln:#dbe4ea;--a:#0b6fa4;--at:#fff;--g:#c25a0c;--bad:#c0332b;--ok:#1b8a52;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1a21;--card:#16262f;--tx:#e8f0f4;--mu:#94aab7;--ln:#2a3f4a;--a:#5bb6e6;--at:#08202c;--g:#f0a15f;--bad:#ff8a80;--ok:#6fd49b;color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+header{background:linear-gradient(135deg,#0b6fa4,#093f60);color:#fff;padding:calc(18px + env(safe-area-inset-top,0px)) 18px 70px}
+header h1{margin:0;font-size:1.4rem}header p{margin:2px 0 0;opacity:.85;font-size:.88rem;text-transform:capitalize}
+main{max-width:640px;margin:-52px auto 0;padding:0 14px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 4px 14px rgba(10,60,90,.08)}
+h2{margin:0 0 4px;font-size:1.05rem}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:10px;box-shadow:0 4px 14px rgba(10,60,90,.1)}
+.kpi span{display:block;font-size:.72rem;color:var(--mu)}.kpi b{font-size:1rem}.kpi b.g{color:var(--g)}
+.prod{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.num{text-align:right}.big{font-size:2.8rem;font-weight:800;line-height:1}
+.agua{color:var(--a)}.gas{color:var(--g)}.neg{color:var(--bad)}.mu{color:var(--mu);font-size:.85rem}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.78rem;font-weight:700}
+.chip.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.full{grid-column:1/-1}
+label{display:block;font-size:.82rem;color:var(--mu);margin-bottom:3px}
+input,select{width:100%;padding:12px;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+.go{width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:var(--a);color:var(--at);font:inherit;font-weight:700;cursor:pointer}
+.go.alt{background:var(--ok);color:#fff}.go.out{background:none;border:1px solid var(--a);color:var(--a)}
+details{margin-top:8px}summary{cursor:pointer;color:var(--a);font-weight:600;padding:6px 0}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--ln)}
+.item b{display:block}.tot{font-weight:700;text-align:right;white-space:nowrap}
+.del,.pay{border:0;background:none;font:inherit;cursor:pointer;padding:0;font-weight:600}.del{color:var(--bad)}.pay{color:var(--ok)}
+.seg{display:flex;gap:6px;margin:12px 0 2px}.seg button{flex:1;padding:9px;border:1px solid var(--ln);border-radius:10px;background:none;color:var(--mu);font:inherit;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--a);color:var(--at);border-color:var(--a)}
+.vazio{color:var(--mu);text-align:center;padding:14px 0}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--ln);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+nav button{flex:1;border:0;background:none;color:var(--mu);font:inherit;font-size:.78rem;font-weight:600;padding:6px 2px;cursor:pointer;border-radius:10px}
+nav button span{display:block;font-size:1.35rem}
+nav button.on{color:var(--a);background:color-mix(in srgb,var(--a) 12%,transparent)}
+:focus-visible{outline:3px solid var(--a);outline-offset:2px}
+</style>
+</head>
+<body>
+<header><h1>Depósito Faria</h1><p id="hd"></p></header>
+<main><section id="estoque"></section><section id="vendas" hidden></section><section id="relatorios" hidden></section></main>
+<nav id="nav"><button data-t="estoque"><span>📦</span>Estoque</button><button data-t="vendas"><span>🛒</span>Vendas</button><button data-t="relatorios"><span>📊</span>Relatórios</button></nav>
+<script>
+const K='deposito-v1',P=['Água','Gás'],PG=['Dinheiro','Pix','Cartão','Fiado'],z=v=>({'Água':v,'Gás':v});
+let S={ini:z(0),vz:z(0),preco:z(0),custo:z(0),min:z(5),vendas:[],entradas:[]},busca='',filtro='todas',aba='estoque',aberto={},per={d:'',a:''};
+const norm=()=>['ini','vz','preco','custo','min'].forEach(k=>{S[k]=Object.assign(z(k==='min'?5:0),S[k])});
+try{const r=JSON.parse(localStorage.getItem(K)||'null');if(r)S=Object.assign(S,r)}catch(e){}
+norm();
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R=n=>(+n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const dt=s=>s.split('-').reverse().join('/'),cls=p=>p==='Água'?'agua':'gas';
+const soma=(l,p)=>l.filter(x=>x.p===p).reduce((a,x)=>a+x.q,0);
+const stock=p=>(+S.ini[p]||0)+soma(S.entradas,p)-soma(S.vendas,p);
+const vazios=p=>(+S.vz[p]||0)+S.vendas.filter(v=>v.p===p&&v.troca).reduce((a,v)=>a+v.q,0)-S.entradas.filter(x=>x.p===p).reduce((a,x)=>a+(x.dev||0),0);
+const tt=l=>l.reduce((a,v)=>a+v.q*v.pr,0),lucro=l=>l.reduce((a,v)=>a+v.q*(v.pr-(S.custo[v.p]||0)),0);
+const ord=l=>l.slice().sort((a,c)=>c.d.localeCompare(a.d)||c.id-a.id);
+const opts=a=>a.map(p=>`<option>${p}</option>`).join('');
+
+function rEstoque(){
+  const h=hoje(),m=h.slice(0,7),vh=S.vendas.filter(v=>v.d===h),vm=S.vendas.filter(v=>v.d.startsWith(m)),ar=S.vendas.filter(v=>v.pago===false);
+  const inp=(k,p,lb,st)=>`<div><label>${lb}</label><input type="number" inputmode="decimal" min="0" step="${st}" value="${S[k][p]}" onchange="setV('${k}','${p}',parseFloat(this.value))"></div>`;
+  const ent=ord(S.entradas).slice(0,5);
+  $('estoque').innerHTML=`<div class="kpis"><div class="kpi"><span>Vendido hoje</span><b>${R(tt(vh))}</b></div><div class="kpi"><span>A receber</span><b class="${ar.length?'g':''}">${R(tt(ar))}</b></div><div class="kpi"><span>Lucro do mês</span><b>${R(lucro(vm))}</b></div></div>`+
+  P.map(p=>{const n=stock(p),b=n<=S.min[p];return `<div class="card"><div class="prod"><div><h2 class="${cls(p)}">${p} ${p==='Água'?'(galão)':'(botijão)'}</h2><span class="chip ${b?'bad':'ok'}">${b?'Estoque baixo':'Estoque ok'}</span></div><div class="num"><div class="big ${b?'neg':cls(p)}">${n}</div><span class="mu">cheios</span></div></div>
+  <div class="item"><span>Vasilhames vazios no depósito</span><b>${vazios(p)}</b></div>
+  <details ${aberto[p]?'open':''} ontoggle="aberto['${p}']=this.open"><summary>Ajustar produto</summary><div class="row">${inp('ini',p,'Estoque inicial','1')}${inp('vz',p,'Vazios que já tenho','1')}${inp('preco',p,'Preço de venda (R$)','0.01')}${inp('custo',p,'Preço de compra (R$)','0.01')}${inp('min',p,'Avisar com até','1')}</div></details></div>`}).join('')+
+  `<div class="card"><h2>Receber mercadoria</h2><div class="row"><div><label for="ed">Data</label><input id="ed" type="date" value="${h}"></div><div><label for="ep">Produto</label><select id="ep">${opts(P)}</select></div>
+  <div><label for="eq">Cheios que chegaram</label><input id="eq" type="number" inputmode="numeric" min="0" value="1"></div><div><label for="edv">Vazios devolvidos</label><input id="edv" type="number" inputmode="numeric" min="0" value="0"></div></div>
+  <button class="go alt" onclick="addE()">Registrar entrada</button>
+  ${ent.length?'<div style="margin-top:10px">'+ent.map(x=>`<div class="item"><div><b>${x.q} × ${x.p}</b><span class="mu">${dt(x.d)}${x.dev?' · '+x.dev+' vazios devolvidos':''}</span></div><button class="del" onclick="delE(${x.id})">Apagar</button></div>`).join('')+'</div>':''}</div>`;
+}
+function setV(k,p,v){S[k][p]=Math.max(0,v||0);save();render()}
+function addE(){const q=parseInt($('eq').value)||0,dv=parseInt($('edv').value)||0;if(q<1&&dv<1)return alert('Digite quantos cheios chegaram ou quantos vazios foram devolvidos.');S.entradas.push({id:Date.now(),d:$('ed').value||hoje(),p:$('ep').value,q,dev:dv});save();render()}
+function delE(id){if(confirm('Apagar esta entrada? O estoque se ajusta.')){S.entradas=S.entradas.filter(x=>x.id!==id);save();render()}}
+
+function rVendas(){
+  const cl=[...new Set(S.vendas.map(v=>v.c))].map(c=>`<option value="${esc(c)}">`).join('');
+  $('vendas').innerHTML=`<div class="card"><h2>Nova venda</h2><div class="row">
+  <div><label for="vd">Data</label><input id="vd" type="date" value="${hoje()}"></div><div><label for="vp">Produto</label><select id="vp" onchange="vPreco()">${opts(P)}</select></div>
+  <div class="full"><label for="vc">Nome do cliente</label><input id="vc" list="cl" autocomplete="off"><datalist id="cl">${cl}</datalist></div>
+  <div><label for="vq">Quantidade</label><input id="vq" type="number" inputmode="numeric" min="1" value="1" oninput="vTot()"></div>
+  <div><label for="vu">Preço unitário (R$)</label><input id="vu" type="number" inputmode="decimal" min="0" step="0.01" value="${S.preco['Água']}" oninput="vTot()"></div>
+  <div><label for="vg">Pagamento</label><select id="vg">${opts(PG)}</select></div><div><label for="vz">Trouxe vasilhame vazio?</label><select id="vz"><option>Sim</option><option>Não</option></select></div></div>
+  <p class="mu" style="margin:10px 0 0">Total: <b id="vt">${R(S.preco['Água'])}</b></p><button class="go" onclick="addV()">Registrar venda</button></div>
+  <div class="card"><label for="vb">Buscar cliente</label><input id="vb" type="search" value="${esc(busca)}" oninput="busca=this.value;rLista()"><div id="vl"></div></div>`;
+  rLista();
+}
+function rLista(){
+  const b=busca.trim().toLowerCase(),l=ord(S.vendas.filter(v=>(!b||v.c.toLowerCase().includes(b))&&(filtro==='todas'||v.pago===false)));
+  $('vl').innerHTML=`<div class="seg"><button class="${filtro==='todas'?'on':''}" onclick="filtro='todas';rLista()">Todas</button><button class="${filtro==='rec'?'on':''}" onclick="filtro='rec';rLista()">A receber</button></div>`+
+  (l.length?l.map(v=>`<div class="item"><div><b>${esc(v.c)}</b><span class="mu">${dt(v.d)} · ${v.q} × ${v.p} a ${R(v.pr)} · ${v.pg||'Dinheiro'}</span>${v.pago===false?'<span class="chip bad">A receber</span>':''}</div>
+  <div class="tot">${R(v.q*v.pr)}<br>${v.pago===false?`<button class="pay" onclick="pagar(${v.id})">Receber</button> · `:''}<button class="del" onclick="delV(${v.id})">Apagar</button></div></div>`).join('')+
+  `<div class="item"><b>Total${b?' do cliente':''}</b><span class="tot">${R(tt(l))}</span></div>`:'<p class="vazio">Nenhuma venda aqui.</p>');
+}
+const vPreco=()=>{$('vu').value=S.preco[$('vp').value];vTot()};
+const vTot=()=>{$('vt').textContent=R((+$('vq').value||0)*(+$('vu').value||0))};
+function addV(){
+  const c=$('vc').value.trim(),p=$('vp').value,q=parseInt($('vq').value)||0,pr=parseFloat($('vu').value)||0,pg=$('vg').value;
+  if(!c)return alert('Digite o nome do cliente.');if(q<1)return alert('A quantidade precisa ser 1 ou mais.');
+  if(q>stock(p)&&!confirm('Só tem '+stock(p)+' de '+p+' em estoque. Registrar mesmo assim?'))return;
+  S.vendas.push({id:Date.now(),d:$('vd').value||hoje(),c,p,q,pr,pg,troca:$('vz').value==='Sim',pago:pg!=='Fiado'});save();busca='';render();
+}
+function pagar(id){const v=S.vendas.find(x=>x.id===id);if(v){v.pago=true;save();render()}}
+function delV(id){if(confirm('Apagar esta venda? O estoque volta.')){S.vendas=S.vendas.filter(v=>v.id!==id);save();render()}}
+
+function rRel(){
+  const h=hoje();if(!per.d){per={d:h.slice(0,8)+'01',a:h}}
+  $('relatorios').innerHTML=`<div class="card"><h2>Relatórios</h2><div class="seg"><button onclick="setPer('${h}','${h}')">Hoje</button><button onclick="setPer('${h.slice(0,8)}01','${h}')">Este mês</button></div>
+  <div class="row"><div><label for="rd">De</label><input id="rd" type="date" value="${per.d}" onchange="per.d=this.value;rResumo()"></div><div><label for="ra">Até</label><input id="ra" type="date" value="${per.a}" onchange="per.a=this.value;rResumo()"></div></div><div id="rs"></div>
+  <button class="go" onclick="expXlsx()">Baixar planilha Excel</button><button class="go alt" onclick="expPdf()">Baixar PDF</button></div>
+  <div class="card"><h2>Cópia de segurança</h2><p class="mu" style="margin:0">Guarde uma cópia dos seus dados para não perder se trocar de celular.</p>
+  <button class="go out" onclick="backup()">Salvar cópia de segurança</button><label class="go out" style="display:block;text-align:center;cursor:pointer">Restaurar cópia<input type="file" accept=".json" hidden onchange="restaurar(this.files[0])"></label></div>`;
+  rResumo();
+}
+function setPer(d,a){per={d,a};rRel()}
+function dados(){
+  const d=$('rd').value||'0000',a=$('ra').value||'9999';
+  return {v:S.vendas.filter(x=>x.d>=d&&x.d<=a).sort((x,y)=>x.d.localeCompare(y.d)||x.id-y.id),e:S.entradas.slice().sort((x,y)=>x.d.localeCompare(y.d)),d,a};
+}
+function rResumo(){
+  const D=dados(),l=D.v,ar=l.filter(v=>v.pago===false);
+  $('rs').innerHTML=`<div class="item"><span>Total vendido</span><b class="tot">${R(tt(l))}</b></div>`+P.map(p=>`<div class="item"><span>${p}</span><b class="tot">${soma(l,p)} unidades</b></div>`).join('')+
+  `<div class="item"><span>A receber (fiado)</span><b class="tot">${R(tt(ar))}</b></div><div class="item"><span>Lucro estimado</span><b class="tot">${R(lucro(l))}</b></div>`;
+}
+const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),9e3)};
+const backup=()=>dl(new Blob([JSON.stringify(S)],{type:'application/json'}),'deposito-faria-copia-'+hoje()+'.json');
+function restaurar(f){
+  if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.vendas))throw 0;
+    if(!confirm('Restaurar esta cópia? Os dados atuais serão substituídos.'))return;S=Object.assign(S,o);norm();save();render();rRel();alert('Cópia restaurada.')}catch(e){alert('Arquivo inválido.')}};
+  r.readAsText(f);
+}
+
+/* ---------- Excel (.xlsx) sem bibliotecas ---------- */
+const crcT=(()=>{const t=[];for(let n=0,c;n<256;n++){c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc=b=>{let c=-1;for(const x of b)c=crcT[(c^x)&255]^(c>>>8);return(c^-1)>>>0};
+const enc=s=>new TextEncoder().encode(s),X=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function zip(fs){
+  const w=(a,n,v)=>{for(let i=0;i<n;i++)a.push((v>>>(8*i))&255)},out=[],cd=[];let off=0;
+  for(const [n,d] of fs){const nb=enc(n),c=crc(d),h=[],e=[];
+    w(h,4,0x04034b50);w(h,2,20);w(h,2,0);w(h,2,0);w(h,2,0);w(h,2,0x21);w(h,4,c);w(h,4,d.length);w(h,4,d.length);w(h,2,nb.length);w(h,2,0);
+    w(e,4,0x02014b50);w(e,2,20);w(e,2,20);w(e,2,0);w(e,2,0);w(e,2,0);w(e,2,0x21);w(e,4,c);w(e,4,d.length);w(e,4,d.length);w(e,2,nb.length);[2,2,2,2,4].forEach(k=>w(e,k,0));w(e,4,off);
+    out.push(Uint8Array.from(h),nb,d);cd.push(Uint8Array.from(e),nb);off+=h.length+nb.length+d.length}
+  const en=[];w(en,4,0x06054b50);w(en,2,0);w(en,2,0);w(en,2,fs.length);w(en,2,fs.length);w(en,4,cd.reduce((a,x)=>a+x.length,0));w(en,4,off);w(en,2,0);
+  return new Blob([...out,...cd,Uint8Array.from(en)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function sheetXml(s){
+  const cell=(v,x,y)=>{const r=String.fromCharCode(65+x)+(y+1),st=y===0?1:(s.m.includes(x)?2:0);
+    if(typeof v==='number')return `<c r="${r}" s="${st}"><v>${v}</v></c>`;
+    if(v&&v.f)return `<c r="${r}" s="2"><f>${v.f}</f></c>`;
+    return `<c r="${r}" s="${st}" t="inlineStr"><is><t>${X(v)}</t></is></c>`};
+  return `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols>${s.w.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols><sheetData>${s.rows.map((r,y)=>`<row r="${y+1}">${r.map((v,x)=>cell(v,x,y)).join('')}</row>`).join('')}</sheetData></worksheet>`;
+}
+function expXlsx(){
+  const D=dados(),n=D.v.length+1;
+  const sh=[
+   {n:'Estoque',w:[16,16,14,12,16,14,14,16,16],m:[7,8],rows:[['Produto','Estoque inicial','Entradas','Vendido','Estoque atual','Mínimo','Vazios','Preço de venda','Preço de compra'],...P.map(p=>[p,S.ini[p]||0,soma(S.entradas,p),soma(S.vendas,p),stock(p),S.min[p]||0,vazios(p),S.preco[p]||0,S.custo[p]||0])]},
+   {n:'Vendas',w:[13,30,12,13,12,16,16,14],m:[5,6],rows:[['Data','Cliente','Produto','Pagamento','Quantidade','Preço unitário','Total','Situação'],...D.v.map((v,i)=>[dt(v.d),v.c,v.p,v.pg||'Dinheiro',v.q,v.pr,{f:`E${i+2}*F${i+2}`},v.pago===false?'A receber':'Pago']),['Total','','','','','',{f:`SUM(G2:G${n})`},''],['A receber','','','','','',{f:`SUMIF(H2:H${n},"A receber",G2:G${n})`},'']]},
+   {n:'Entradas',w:[13,12,12,18],m:[],rows:[['Data','Produto','Quantidade','Vazios devolvidos'],...D.e.map(e=>[dt(e.d),e.p,e.q,e.dev||0])]}];
+  const ct='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sh.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>';
+  const R0='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const st=`<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;R$&quot; #,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0B6FA4"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="3"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"/><xf numFmtId="164" applyNumberFormat="1"/></cellXfs></styleSheet>`;
+  const fs=[['[Content_Types].xml',ct],
+   ['_rels/.rels',`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="r1" Type="${R0}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+   ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${R0}"><sheets>${sh.map((s,i)=>`<sheet name="${s.n}" sheetId="${i+1}" r:id="r${i+1}"/>`).join('')}</sheets></workbook>`],
+   ['xl/_rels/workbook.xml.rels',`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sh.map((s,i)=>`<Relationship Id="r${i+1}" Type="${R0}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}<Relationship Id="r9" Type="${R0}/styles" Target="styles.xml"/></Relationships>`],
+   ['xl/styles.xml',st],...sh.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`,sheetXml(s)])].map(([n,t])=>[n,enc(t)]);
+  dl(zip(fs),'deposito-faria-'+hoje()+'.xlsx');
+}
+
+/* ---------- PDF sem bibliotecas ---------- */
+function expPdf(){
+  const D=dados(),B='0.04 0.44 0.64',pg=[];let cur,y;
+  const q=s=>String(s).replace(/[\\()]/g,'\\$&').replace(/[^\x20-\xff]/g,'?');
+  const T=(x,yy,s,z,b,c)=>`BT /F${b?2:1} ${z} Tf ${c||'0.1 0.14 0.18'} rg ${x} ${yy} Td (${q(s)}) Tj ET\n`;
+  const Rc=(x,yy,w,h,c)=>`${c} rg ${x} ${yy} ${w} ${h} re f\n`;
+  const np=()=>{if(cur)pg.push(cur);cur=Rc(0,782,595,60,B)+T(40,808,'Depósito Faria',20,1,'1 1 1')+T(40,792,'Relatório de '+dt(D.d.length>4?D.d:hoje())+' a '+dt(D.a.length>4?D.a:hoje()),10,0,'1 1 1');y=752};
+  const tab=(t,cols,ws,rows,foot)=>{
+    if(y<130)np();cur+=T(40,y,t,13,1,B);y-=10;
+    const line=(r,b,bg,c)=>{y-=18;if(bg)cur+=Rc(40,y-5,515,18,bg);let x=40;r.forEach((v,i)=>{const s=String(v),isn=i>=cols.length-ws.n;const px=isn?x+ws[i]-6-s.length*5.2:x+6;cur+=T(px,y,s.slice(0,Math.floor(ws[i]/5.2)),10,b,c);x+=ws[i]})};
+    line(cols,1,B,'1 1 1');
+    rows.forEach((r,i)=>{if(y<70){np();line(cols,1,B,'1 1 1')}line(r,0,i%2?'0.94 0.96 0.98':'1 1 1')});
+    if(foot)line(foot,1,'0.85 0.92 0.97');
+    y-=22};
+  np();
+  tab('Estoque atual',['Produto','Entradas','Vendido','Estoque','Vazios'],Object.assign([155,90,90,90,90],{n:4}),P.map(p=>[p,soma(S.entradas,p),soma(S.vendas,p),stock(p),vazios(p)]));
+  const tv=tt(D.v),ar=tt(D.v.filter(v=>v.pago===false));
+  tab('Vendas do período',['Data','Cliente','Produto','Pagto','Qtd','Unitário','Total'],Object.assign([58,140,46,66,32,80,93],{n:3}),D.v.map(v=>[dt(v.d),v.c,v.p,(v.pg||'Dinheiro')+(v.pago===false?'*':''),v.q,R(v.pr),R(v.q*v.pr)]),['','','','Total',D.v.reduce((a,v)=>a+v.q,0),'',R(tv)]);
+  tab('Resumo do período',['Item','Valor'],Object.assign([355,160],{n:1}),[['Total vendido',R(tv)],['A receber (fiado, marcado com *)',R(ar)],['Lucro estimado',R(lucro(D.v))]]);
+  pg.push(cur);
+  const o=['','<</Type/Catalog/Pages 2 0 R>>',null,'<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>','<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>'],kids=[];
+  pg.forEach(p=>{const ci=o.length;o.push(`<</Length ${p.length}>>\nstream\n${p}endstream`);kids.push((ci+1)+' 0 R');o.push(`<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<</Font<</F1 3 0 R/F2 4 0 R>>>>/Contents ${ci} 0 R>>`)});
+  o[2]=`<</Type/Pages/Count ${kids.length}/Kids[${kids.join(' ')}]>>`;
+  let s='%PDF-1.4\n';const off=[];
+  for(let i=1;i<o.length;i++){off[i]=s.length;s+=`${i} 0 obj\n${o[i]}\nendobj\n`}
+  const xr=s.length;s+=`xref\n0 ${o.length}\n0000000000 65535 f \n`+off.slice(1).map(v=>String(v).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size ${o.length}/Root 1 0 R>>\nstartxref\n${xr}\n%%EOF`;
+  dl(new Blob([Uint8Array.from(s,c=>c.charCodeAt(0)&255)],{type:'application/pdf'}),'deposito-faria-'+hoje()+'.pdf');
+}
+
+function render(){
+  rEstoque();rVendas();
+  ['estoque','vendas','relatorios'].forEach(t=>$(t).hidden=t!==aba);
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===aba));
+}
+$('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(b){aba=b.dataset.t;if(aba==='relatorios')rRel();render();window.scrollTo(0,0)}});
+$('hd').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+rRel();render();
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
